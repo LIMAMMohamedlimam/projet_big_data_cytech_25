@@ -1,8 +1,12 @@
 import org.apache.spark.sql.{SparkSession , DataFrame}
 import java.io.{File, FileOutputStream}
 import java.nio.file.{Files, Paths}
-import java.net.URL
+import java.net.{URL, URI}
 import java.nio.channels.Channels
+
+import io.minio.{MinioClient, PutObjectArgs}
+import java.net.http.{HttpClient, HttpRequest, HttpResponse}
+import java.time.Duration
 
 object Main {
   
@@ -25,7 +29,8 @@ object Main {
     
     try {
         // PARTIE 1: Télécharger le fichier parquet dans data/raw
-        val fileName = "yellow_tripdata_2025-11.parquet"
+        // TODO: dynamicaly be able to change month and year
+        val fileName = "yellow_tripdata_2025-11.parquet"  
         val url = s"https://d37ci6vzurychx.cloudfront.net/trip-data/$fileName"
         val localPath = s"data/raw/$fileName"
 
@@ -39,11 +44,21 @@ object Main {
             println(s"Fichier téléchargé dans $localPath")
         }
         
-        // PARTIE 2: Upload vers MinIO bucket nyc_raw
-        uploadToMinio(spark, localPath, fileName)
+        // // PARTIE 2: Upload vers MinIO bucket nyc_raw
+        // uploadToMinio(spark, localPath, fileName)
         
-        // PARTIE 3: Téléchargement direct vers MinIO (sans passer par local)
-        downloadDirectlyToMinio(spark, url, fileName)
+        // // PARTIE 3: Téléchargement direct vers MinIO (sans passer par local)
+        // downloadDirectlyToMinio(spark, url, fileName)
+
+        streamParquetToMinio(
+          parquetUrl = url,
+          bucket = "nyc-raw",
+          objectKey = s"$fileName",
+          minioEndpoint = "http://localhost:9000",
+          accessKey = "minio",
+          secretKey = "minio123",
+          insecure = true
+        )
       
     } finally {
       spark.stop()
@@ -96,5 +111,62 @@ object Main {
       .parquet(s"s3a://nyc-raw/direct_$fileName")
     
     println(s"Téléchargement direct terminé dans MinIO")
+  }
+
+
+  def streamParquetToMinio(
+    parquetUrl: String,
+    bucket: String,
+    objectKey: String,
+    minioEndpoint: String,
+    accessKey: String,
+    secretKey: String,
+    insecure: Boolean = false
+  ): Unit = {
+
+    println(s"Streaming $parquetUrl to MinIO s3://$bucket/$objectKey")
+
+    val minio = MinioClient.builder()
+      .endpoint(minioEndpoint)
+      .credentials(accessKey, secretKey)
+      .build()
+
+    // HTTP stream (no buffering to disk)
+    val http = HttpClient.newBuilder()
+      .connectTimeout(Duration.ofSeconds(20))
+      .followRedirects(HttpClient.Redirect.NORMAL)
+      .build()
+
+    val req = HttpRequest.newBuilder()
+      .uri(URI.create(parquetUrl))
+      .timeout(Duration.ofMinutes(5))
+      .GET()
+      .build()
+
+    val resp = http.send(req, HttpResponse.BodyHandlers.ofInputStream())
+
+    if (resp.statusCode() / 100 != 2) {
+      val code = resp.statusCode()
+      resp.body().close()
+      throw new RuntimeException(s"HTTP download failed: status=$code url=$parquetUrl")
+    }
+
+    val in = resp.body() // InputStream
+    try {
+      // content-length if provided (better), else -1 (unknown)
+      val len =
+        resp.headers().firstValueAsLong("content-length").orElse(-1L)
+
+      minio.putObject(
+        PutObjectArgs.builder()
+          .bucket(bucket)
+          .`object`(objectKey)
+          .stream(in, len, 10 * 1024 * 1024) // partSize=10MB
+          .contentType("application/octet-stream") // or "application/vnd.apache.parquet"
+          .build()
+      )
+    } finally {
+      in.close()
+    }
   }
 }
