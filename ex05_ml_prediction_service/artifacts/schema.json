@@ -1,0 +1,33 @@
+{
+  "target": "total_amount",
+  "numeric_features": [
+    "trip_distance",
+    "trip_duration_min",
+    "passenger_count",
+    "pickup_hour",
+    "pickup_dayofweek",
+    "pickup_month"
+  ],
+  "categorical_features": [
+    "VendorID",
+    "RatecodeID",
+    "PULocationID",
+    "DOLocationID",
+    "store_and_fwd_flag",
+    "payment_type"
+  ],
+  "all_features": [
+    "trip_distance",
+    "trip_duration_min",
+    "passenger_count",
+    "pickup_hour",
+    "pickup_dayofweek",
+    "pickup_month",
+    "VendorID",
+    "RatecodeID",
+    "PULocationID",
+    "DOLocationID",
+    "store_and_fwd_flag",
+    "payment_type"
+  ]
+}
