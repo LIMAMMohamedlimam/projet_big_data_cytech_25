@@ -179,6 +179,7 @@ def main() -> None:
         "Validate input",
         "Feature engineering",
         "Split train/test",
+        "Clip trip_distance",
         "Fit model",
         "Evaluate",
         "Save artifacts",

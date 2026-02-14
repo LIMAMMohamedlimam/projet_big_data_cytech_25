@@ -5,7 +5,6 @@ import org.apache.spark.sql.functions._
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 import java.util.Properties
 import scala.collection.mutable
-import scala.util.Using
 
 object Branch2 {
   
@@ -197,18 +196,23 @@ class DimensionCaches(url: String, user: String, password: String) {
   }
   
   // fixing the connection management to avoid JDBC resource leaks
-  private def loadVendorCache(): Map[Int, Int] =
-  Using.Manager { use =>
-    val conn = use(getConnection)
-    val stmt = use(conn.createStatement())
-    val rs   = use(stmt.executeQuery("SELECT vendor_id, vendor_key FROM dim_vendor"))
-
-    val cache = mutable.Map[Int, Int]()
-    while (rs.next()) cache(rs.getInt("vendor_id")) = rs.getInt("vendor_key")
-    println(s"  ✓ dim_vendor: ${cache.size} entrées chargées")
-    cache.toMap
+  private def loadVendorCache(): Map[Int, Int] = {
+    val conn = getConnection
+    try {
+      val stmt = conn.createStatement()
+      val rs = stmt.executeQuery("SELECT vendor_id, vendor_key FROM dim_vendor")
+      val cache = mutable.Map[Int, Int]()
+      while (rs.next()) {
+        cache(rs.getInt("vendor_id")) = rs.getInt("vendor_key")
+      }
+      rs.close()
+      stmt.close()
+      println(s"  ✓ dim_vendor: ${cache.size} entrées chargées")
+      cache.toMap
+    } finally {
+      conn.close()
+    }  
   }
-
   
   private def loadPaymentCache(): Map[Int, Int] = {
     val conn = getConnection

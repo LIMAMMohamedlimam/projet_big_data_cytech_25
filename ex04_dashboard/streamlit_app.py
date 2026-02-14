@@ -181,6 +181,8 @@ else:
 # Conversion des dates pour la requête
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start_date, end_date = date_range
+elif isinstance(date_range, tuple) and len(date_range) == 1:
+    start_date = end_date = date_range[0]
 else:
     start_date = end_date = date_range
 
@@ -207,6 +209,7 @@ WHERE d.date_value BETWEEN '{start_date}' AND '{end_date}'
     AND t.hour BETWEEN {hour_range[0]} AND {hour_range[1]}
 """
 kpi_data = run_query(kpi_query)
+kpi_data = kpi_data.fillna(0)
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
