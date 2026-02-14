@@ -34,7 +34,7 @@ Ce dépôt contient un projet **Big Data** (CY Tech — 2025) organisé en exerc
 | `ex03_sql_table_creation`    | Modélisation SQL                                      | Tables, dimensions, faits         |
 | `ex04_dashboard`             | Visualisation & analyse                               | Dashboard + KPI                   |
 | `ex05_ml_prediction_service` | Service de prédiction ML                              | API REST + modèle                 |
-| `ex06_airflow`               | Orchestration du pipeline                             | DAG Airflow                       |
+|__________________________________________________________________________________________________________________________|
 
 ---
 
