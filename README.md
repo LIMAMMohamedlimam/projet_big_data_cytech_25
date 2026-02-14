@@ -19,7 +19,6 @@ Ce dépôt contient un projet **Big Data** (CY Tech — 2025) organisé en exerc
 ├── ex03_sql_table_creation/
 ├── ex04_dashboard/
 ├── ex05_ml_prediction_service/
-├── ex06_airflow/
 ├── data/
 ├── docker-compose.yml
 └── README.md
