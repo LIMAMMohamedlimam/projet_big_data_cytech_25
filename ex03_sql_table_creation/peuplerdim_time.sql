@@ -11,7 +11,7 @@ SELECT
     EXTRACT(MONTH FROM date_value)::INTEGER,
     EXTRACT(DAY FROM date_value)::INTEGER,
     EXTRACT(DOW FROM date_value)::INTEGER,
-    TO_CHAR(date_value, 'Day'),
+    TO_CHAR(date_value, 'FMDay'),
     CASE WHEN EXTRACT(DOW FROM date_value) IN (0, 6) THEN TRUE ELSE FALSE END,
     EXTRACT(QUARTER FROM date_value)::INTEGER
 FROM generate_series(

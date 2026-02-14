@@ -62,10 +62,11 @@ def read_parquet_any(path: str, s3: Optional[S3Config] = None) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
-import s3fs
-from src.config import get_s3_config
+
 
 if __name__ == "__main__":
+    import s3fs
+    from src.config import get_s3_config
     s3 = get_s3_config()
     fs = s3fs.S3FileSystem(
         key=s3.access_key,

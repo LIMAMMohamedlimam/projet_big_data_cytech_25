@@ -131,13 +131,16 @@ def main() -> None:
     model = load(paths.model_path)
 
     schema = json.loads(paths.schema_path.read_text(encoding="utf-8"))
+    click_upper = schema.get("trip_distance_clip_upper", None)
     feature_cols = schema["all_features"]
 
     df = _read_input(args.input)
     validate_inference_frame(df, schema=DEFAULT_SCHEMA)
 
-    df_feat = make_features(df)
-    X = df_feat[feature_cols].copy()
+    # passing the clipping threshold computed from training data
+    df_feat = make_features(df , trip_distance_clip_upper=click_upper)
+    X = df_feat.reindex(columns=feature_cols).copy()
+    # X = df_feat[feature_cols].copy() --- IGNORE --- 
 
     preds = model.predict(X)
     out = df.copy()

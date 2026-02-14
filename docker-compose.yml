@@ -103,6 +103,9 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+      
+    networks:
+      - spark-network
 
 volumes:
   pgdata:

@@ -219,6 +219,16 @@ def main() -> None:
             logger.info("Categorical features: %s", categorical_cols)
         pbar.update(1)
 
+        # computing the upper bound for clipping 'trip_distance' based on training data
+        clip_upper = None
+        if "trip_distance" in X_train.columns:
+            clip_upper = float(np.nanpercentile(X_train["trip_distance"], 99.5))
+            X_train["trip_distance"] = X_train["trip_distance"].clip(lower=0, upper=clip_upper)
+            X_test["trip_distance"]  = X_test["trip_distance"].clip(lower=0, upper=clip_upper)
+            logger.info("Clipped 'trip_distance' to upper bound: %.2f", clip_upper)
+        pbar.update(1)
+            
+
         with _log_step(logger, "Fit model"):
             pipe = build_pipeline(numeric_cols, categorical_cols)
             pipe.fit(X_train, y_train)
@@ -249,6 +259,8 @@ def main() -> None:
                 "numeric_features": numeric_cols,
                 "categorical_features": categorical_cols,
                 "all_features": keep_cols,
+                # upper threshold used for clipping 'trip_distance' 
+                "trip_distance_clip_upper": clip_upper,
             }
             paths.schema_path.write_text(
                 json.dumps(schema_out, indent=2),

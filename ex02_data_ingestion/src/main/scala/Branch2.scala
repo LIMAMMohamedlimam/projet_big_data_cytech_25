@@ -5,6 +5,7 @@ import org.apache.spark.sql.functions._
 import java.sql.{Connection, DriverManager, PreparedStatement, ResultSet}
 import java.util.Properties
 import scala.collection.mutable
+import scala.util.Using
 
 object Branch2 {
   
@@ -35,7 +36,8 @@ object Branch2 {
       println("========== BRANCHE 2: INGESTION POSTGRESQL ==========\n")
       
       // 1. Lecture des données nettoyées depuis MinIO
-      val cleanedPath = "s3a://nyc-cleaned/yellow_tripdata_cleaned_2024-01.parquet"
+      // TODO: use dynamic path based on input file name
+      val cleanedPath = "s3a://nyc-cleaned/yellow_tripdata_cleaned_2025-11.parquet"
       println(s"Lecture des données depuis: $cleanedPath")
       val cleanedDF = spark.read.parquet(cleanedPath)
       val totalRows = cleanedDF.count()
@@ -160,13 +162,15 @@ object Branch2 {
     props.setProperty("user", POSTGRES_USER)
     props.setProperty("password", POSTGRES_PASSWORD)
     props.setProperty("driver", "org.postgresql.Driver")
+
+    val insertedCount = df.count() // Caching before writing to avoid re-computation
     
     // Batch insert pour performance
     df.write
       .mode(SaveMode.Append)
       .jdbc(POSTGRES_URL, "fact_trips", props)
     
-    val insertedCount = df.count()
+    // val insertedCount = df.count() --- IGNORE ---
     println(s"✓ $insertedCount lignes insérées dans fact_trips")
   }
   
@@ -192,20 +196,19 @@ class DimensionCaches(url: String, user: String, password: String) {
     DriverManager.getConnection(url, user, password)
   }
   
-  private def loadVendorCache(): Map[Int, Int] = {
-    val conn = getConnection
-    val stmt = conn.createStatement()
-    val rs = stmt.executeQuery("SELECT vendor_id, vendor_key FROM dim_vendor")
+  // fixing the connection management to avoid JDBC resource leaks
+  private def loadVendorCache(): Map[Int, Int] =
+  Using.Manager { use =>
+    val conn = use(getConnection)
+    val stmt = use(conn.createStatement())
+    val rs   = use(stmt.executeQuery("SELECT vendor_id, vendor_key FROM dim_vendor"))
+
     val cache = mutable.Map[Int, Int]()
-    while (rs.next()) {
-      cache(rs.getInt("vendor_id")) = rs.getInt("vendor_key")
-    }
-    rs.close()
-    stmt.close()
-    conn.close()
+    while (rs.next()) cache(rs.getInt("vendor_id")) = rs.getInt("vendor_key")
     println(s"  ✓ dim_vendor: ${cache.size} entrées chargées")
     cache.toMap
   }
+
   
   private def loadPaymentCache(): Map[Int, Int] = {
     val conn = getConnection

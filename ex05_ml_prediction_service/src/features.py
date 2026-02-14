@@ -6,15 +6,19 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from typing import Optional
 
 
-def make_features(df: pd.DataFrame) -> pd.DataFrame:
+def make_features(df: pd.DataFrame , trip_distance_clip_upper: Optional[float] = None) -> pd.DataFrame:
     """Create ML features from raw taxi trip records.
 
     Parameters
     ----------
     df : pandas.DataFrame
         Raw input dataframe.
+    trip_distance_clip_upper : Optional[float], default=None
+        If set, clip the 'trip_distance' feature to this upper bound to reduce 
+        the influence of outliers. If None, no clipping is applied.
 
     Returns
     -------
@@ -32,8 +36,9 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     if "tpep_dropoff_datetime" in out.columns:
         dropoff = pd.to_datetime(out["tpep_dropoff_datetime"], errors="coerce")
         dur = (dropoff - pickup).dt.total_seconds() / 60.0
-        # Keep negative/NaN as is; validation should catch negative durations if dropoff exists
         out["trip_duration_min"] = dur
+    else:
+        out["trip_duration_min"] = np.nan
 
     # Some columns might be float but should be treated as categorical codes
     cat_like = ["VendorID", "RatecodeID", "PULocationID", "DOLocationID", "payment_type"]
@@ -49,9 +54,9 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     if "store_and_fwd_flag" in out.columns:
         out["store_and_fwd_flag"] = out["store_and_fwd_flag"].astype("object")
 
-    # Optional: clip extreme trip_distance to reduce outlier influence
+    # clip only if a threshold is provided
     if "trip_distance" in out.columns:
         out["trip_distance"] = pd.to_numeric(out["trip_distance"], errors="coerce")
-        out["trip_distance"] = out["trip_distance"].clip(lower=0, upper=np.nanpercentile(out["trip_distance"], 99.5))
-
+        if trip_distance_clip_upper is not None:
+            out["trip_distance"] = out["trip_distance"].clip(lower=0, upper=trip_distance_clip_upper)
     return out

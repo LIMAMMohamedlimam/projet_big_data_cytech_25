@@ -44,7 +44,9 @@ object Branch1 {
         println(s"Lignes supprimées: ${initialCount - cleanedCount}")
         println(s"Taux de conservation: ${(cleanedCount.toDouble / initialCount * 100).formatted("%.2f")}%")
 
-        val outputPath = "s3a://nyc-cleaned/yellow_tripdata_cleaned_2024-01.parquet"
+        // TODO: use dynamic path based on input file name
+        // quick fix for naming inconsistency
+        val outputPath = "s3a://nyc-cleaned/yellow_tripdata_cleaned_2025-11.parquet"
         println(s"Écriture des données nettoyées vers $outputPath")
 
         cleanedDF.write.mode("overwrite").parquet(outputPath)
