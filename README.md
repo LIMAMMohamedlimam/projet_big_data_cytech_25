@@ -1,7 +1,7 @@
 # 📊 Projet Big Data — CY Tech 2025
 
 Ce dépôt contient un projet **Big Data** (CY Tech — 2025) organisé en exercices progressifs couvrant un pipeline complet :
-**récupération** → **ingestion & cleaning** → **modélisation SQL** → **dashboard** → **service de prédiction ML** → **orchestration Airflow**.
+**récupération** → **ingestion & cleaning** → **modélisation SQL** → **dashboard** → **service de prédiction ML**.
 
 > 🧑‍🏫 **Projet réalisé sous l’encadrement de Rakib SHEIKH**
 > GitHub : [https://github.com/Noobzik](https://github.com/Noobzik)
